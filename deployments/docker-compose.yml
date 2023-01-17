@@ -1,0 +1,33 @@
+version: '3.9'
+services:
+  logger-service:
+    build:
+      context: ../logger-service
+      dockerfile: ../logger-service/build/Dockerfile
+    networks: 
+      - overlay
+    ports:
+      - "8080:8080"
+    restart: "no"
+    environment:
+      MONGO_INITDB_DATABASE: logsDB
+      MONGO_INITDB_COLLECTION: logs.events
+      MONGO_INITDB_TTL: 30
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_SERVICE_URI: 'mongodb://mongodb-service:27017'
+  mongodb-service:
+    image: 'mongo:4.2.23-bionic'
+    ports:
+      - "27017:27017"
+    networks: 
+      - overlay
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: logsDB
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - ./db-data/mongo/:/data/db
+networks:
+  overlay:
