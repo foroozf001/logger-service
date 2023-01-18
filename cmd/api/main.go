@@ -2,17 +2,34 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/foroozf001/logger-service/internal/api"
 	"github.com/foroozf001/logger-service/internal/data"
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+type Config struct {
+	Models data.Models
+}
+
+type Config2 struct {
+	Models data.Models
+}
+
+var httpReqs = prometheus.NewCounterVec(
+	prometheus.CounterOpts{
+		Name: "http_requests_total",
+		Help: "How many HTTP requests processed, partitioned by status code and http method.",
+	},
+	[]string{"code", "method"},
 )
 
 const (
@@ -22,38 +39,66 @@ const (
 
 var client *mongo.Client
 
-type Config struct {
-	Models data.Models
-}
-
-var customCounter = promauto.NewCounter(prometheus.CounterOpts{
-	Name: "custom_counter_total",
-	Help: "The total number custom events",
-})
-
 func main() {
-	mongoClient, err := api.ConnectMongo()
-	if err != nil {
-		log.Panic(err)
-	}
+	// prometheus.MustRegister(httpReqs)
 
-	client = mongoClient
-
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-	defer cancel()
-
-	defer func() {
-		if err = client.Disconnect(ctx); err != nil {
-			panic(err)
-		}
-	}()
-
-	// app := Config{
-	// 	Models: data.New(client),
+	// mongoClient, err := ConnectMongo()
+	// if err != nil {
+	// 	log.Panic(err)
 	// }
+
+	// client = mongoClient
+
+	// ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	// defer cancel()
+
+	// defer func() {
+	// 	if err = client.Disconnect(ctx); err != nil {
+	// 		panic(err)
+	// 	}
+	// }()
+
+	app := Config2{
+		Models: data.New(client),
+	}
 
 	log.Printf("listening on http port %s\n", httpPort)
 
-	http.Handle("/metrics", promhttp.Handler())
-	http.ListenAndServe(":8080", nil)
+	srv := &http.Server{
+		Addr:              fmt.Sprintf(":%s", httpPort),
+		Handler:           app.routes(),
+		ReadHeaderTimeout: 2 * time.Second,
+	}
+
+	log.Fatal(srv.ListenAndServe())
+}
+
+func ConnectMongo() (*mongo.Client, error) {
+	usernameEnv, defined := os.LookupEnv("MONGO_INITDB_ROOT_USERNAME")
+	if !defined {
+		return nil, errors.New("mongo username error")
+	}
+	passwordEnv, defined := os.LookupEnv("MONGO_INITDB_ROOT_PASSWORD")
+	if !defined {
+		return nil, errors.New("mongo password error")
+	}
+	uriEnv, defined := os.LookupEnv("MONGO_SERVICE_URI")
+	if !defined {
+		return nil, errors.New("mongo uri error")
+	}
+
+	clientOptions := options.Client().ApplyURI(uriEnv)
+	clientOptions.SetAuth(options.Credential{
+		Username: usernameEnv,
+		Password: passwordEnv,
+	})
+
+	connection, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("connected %s\n", uriEnv)
+
+	return connection, nil
 }

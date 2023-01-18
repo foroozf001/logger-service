@@ -3,6 +3,8 @@ module github.com/foroozf001/logger-service
 go 1.19
 
 require (
+	github.com/go-chi/chi v1.5.4
+	github.com/go-chi/cors v1.2.1
 	github.com/prometheus/client_golang v1.14.0
 	go.mongodb.org/mongo-driver v1.11.1
 )
