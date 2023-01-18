@@ -1,3 +1,4 @@
+// Package api provides the web interface
 package api
 
 import (
@@ -5,7 +6,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"strconv"
 
 	"github.com/foroozf001/logger-service/internal/data"
 )
@@ -24,7 +24,6 @@ func (app *Config) readJSON(w http.ResponseWriter, r *http.Request, data any) er
 	dec := json.NewDecoder(r.Body)
 	err := dec.Decode(data)
 	if err != nil {
-		app.HttpReqs.WithLabelValues(strconv.Itoa(http.StatusBadRequest), r.Method).Inc()
 		return err
 	}
 
@@ -39,7 +38,6 @@ func (app *Config) readJSON(w http.ResponseWriter, r *http.Request, data any) er
 func (app *Config) writeJSON(w http.ResponseWriter, r *http.Request, status int, data any, headers ...http.Header) error {
 	out, err := json.Marshal(data)
 	if err != nil {
-		app.HttpReqs.WithLabelValues(strconv.Itoa(http.StatusBadRequest), r.Method).Inc()
 		return err
 	}
 
@@ -54,11 +52,9 @@ func (app *Config) writeJSON(w http.ResponseWriter, r *http.Request, status int,
 
 	_, err = w.Write(out)
 	if err != nil {
-		app.HttpReqs.WithLabelValues(strconv.Itoa(http.StatusBadRequest), r.Method).Inc()
 		return err
 	}
 
-	app.HttpReqs.WithLabelValues(strconv.Itoa(status), r.Method).Inc()
 	return nil
 }
 
@@ -73,11 +69,10 @@ func (app *Config) errorJSON(w http.ResponseWriter, r *http.Request, err error, 
 	payload.Error = true
 	payload.Message = err.Error()
 
-	app.HttpReqs.WithLabelValues(strconv.Itoa(statusCode), r.Method).Inc()
-
 	return app.writeJSON(w, r, statusCode, payload)
 }
 
+// logEvent inserts a log item into the database
 func (app *Config) logEvent(name, content string) error {
 	event := data.LogItem{
 		Name: name,

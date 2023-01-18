@@ -1,3 +1,4 @@
+// Package api provides the web interface
 package api
 
 import (

@@ -27,6 +27,10 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
+PROTO_DIR ?= internal/proto/v1
+PACKAGE = $(shell head -1 go.mod | awk '{print $$2}')
+
+
 .PHONY: all
 all: build
 
@@ -89,3 +93,7 @@ docker-build: test ## Build docker image.
 .PHONY: docker-push
 docker-push: ## Push docker image.
 	docker push ${IMAGE_TAG_BASE}/${IMG}
+
+.PHONY: proto
+proto: ## Compile proto files.
+	protoc -I ${PROTO_DIR} --go_opt=module=${PACKAGE} --go_out=. --go-grpc_opt=module=${PACKAGE} --go-grpc_out=. ${PROTO_DIR}/*.proto

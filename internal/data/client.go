@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// ConnectMongo connects to a mongodb instance
 func ConnectMongo() (*mongo.Client, error) {
 	usernameEnv, defined := os.LookupEnv("MONGO_INITDB_ROOT_USERNAME")
 	if !defined {

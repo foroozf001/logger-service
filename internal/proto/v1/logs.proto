@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package logger;
+
+option go_package = "github.com/foroozf001/logger-service/internal/proto/v1";
+
+message Log {
+  string name = 1;
+  string data = 2;
+}
+
+message LogRequest {
+  Log logEntry = 1;
+}
+
+message LogResponse {
+  string result = 1;
+}
+
+service LogService {
+  rpc WriteLog(LogRequest) returns (LogResponse);
+}
